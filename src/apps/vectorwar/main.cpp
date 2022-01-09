@@ -6,6 +6,8 @@
 #include "vectorwar.h"
 #include "ggpo_perfmon.h"
 
+VectorWar* vectorWar;
+
 LRESULT CALLBACK
 MainWindowProc(HWND hwnd,
                UINT uMsg,
@@ -19,14 +21,16 @@ MainWindowProc(HWND hwnd,
       if (wParam == 'P') {
          ggpoutil_perfmon_toggle();
       } else if (wParam == VK_ESCAPE) {
-         VectorWar_Exit();
+          
+          vectorWar->Exit();
+         delete vectorWar;
 		 PostQuitMessage(0);
       } else if (wParam >= VK_F1 && wParam <= VK_F12) {
-         VectorWar_DisconnectPlayer((int)(wParam - VK_F1));
+         vectorWar->DisconnectPlayer((int)(wParam - VK_F1));
       }
       return 0;
    case WM_PAINT:
-      VectorWar_DrawCurrentFrame();
+      vectorWar->DrawCurrentFrame();
       ValidateRect(hwnd, NULL);
       return 0;
    case WM_CLOSE:
@@ -78,9 +82,9 @@ RunMainLoop(HWND hwnd)
          }
       }
       now = timeGetTime();
-      VectorWar_Idle(max(0, next - now - 1));
+      vectorWar->Idle(max(0, next - now - 1));
       if (now >= next) {
-         VectorWar_RunFrame(hwnd);
+         vectorWar->RunFrame(hwnd);
          next = now + (1000 / 60);
       }
    }
@@ -99,6 +103,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     _In_ LPWSTR,
     _In_ int)
 {
+    vectorWar = new VectorWar();
    HWND hwnd = CreateMainWindow(hInstance);
    int offset = 1, local_player = 0;
    WSADATA wd = { 0 };
@@ -135,7 +140,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
          return 1;
       }
       wcstombs_s(nullptr, host_ip, ARRAYSIZE(host_ip), wide_ip_buffer, _TRUNCATE);
-      VectorWar_InitSpectator(hwnd, local_port, num_players, host_ip, host_port);
+      vectorWar->InitSpectator(hwnd, local_port, num_players, host_ip, host_port);
    } else {
       GGPOPlayer players[GGPO_MAX_SPECTATORS + GGPO_MAX_PLAYERS];
 
@@ -175,11 +180,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
          ::SetWindowPos(hwnd, NULL, window_offsets[local_player].x, window_offsets[local_player].y, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
       }
 
-      VectorWar_Init(hwnd, local_port, num_players, players, num_spectators);
+      vectorWar->Init(hwnd, local_port, num_players, players, num_spectators);
    }
    RunMainLoop(hwnd);
-   VectorWar_Exit();
+   vectorWar->Exit();
    WSACleanup();
    DestroyWindow(hwnd);
+   delete vectorWar;
    return 0;
 }
