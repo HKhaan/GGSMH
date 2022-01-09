@@ -27,3 +27,7 @@ before_build:
 
 build:
   project: build\GGPO.sln
+  
+# https://gist.github.com/FeodorFitsner/0bd366055d8865251366 
+artifacts:
+  - path: build
