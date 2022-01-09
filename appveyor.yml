@@ -27,3 +27,16 @@ before_build:
 
 build:
   project: build\GGPO.sln
+  
+# https://gist.github.com/FeodorFitsner/0bd366055d8865251366 
+artifacts:
+  - path: build
+
+deploy:
+- provider: GitHub
+  artifact: build          
+  draft: false
+  prerelease: false
+  on:
+    branch: main                # release from main branch only
+    appveyor_repo_tag: true  
