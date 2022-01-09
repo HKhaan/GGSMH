@@ -6,7 +6,7 @@
 
 ## What's GGPO-vNext?
 After some discussion in the ggpo discord channel, we came to the conclusion that the ggpo project is not complete and that people have their own build of ggpo to add changes/improvements. One of the reasons might be the fact that pull-requests in the original ggpo project are not beeing reviewed & merged anymore. So I will manage this version & will look into adding more contributers to manage. I have listed made a list of changes/goals to finish for this version of ggpo.
-* Abstracting the connection layer
+* :white_check_mark: Abstracting the connection layer
 * Removing the need for global variables.
 * Server based rollback game ability: something similair to brawlhalla. (this will be optional)
 * A system where the clients sync their gamestate every X frame by comparing checksums: this is for the devs that can't get determinism working, it makes cheating easy to do tough.(Luckily *EOS has a built in anti-cheat for free, an example for this will be provided).
