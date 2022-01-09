@@ -1,3 +1,5 @@
+# TODO:
+This version is not up to date with the english version. 
 # GGPO開発者ガイド
 
 GGPOネットワークライブラリ開発者ガイドは、アプリケーションにGGPOネットワークライブラリを実装する開発者向けに用意されたドキュメントです。
