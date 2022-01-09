@@ -19,7 +19,7 @@ After some discussion in the ggpo discord channel, we came to the conclusion tha
 * Add replay functionality (save inputs, and reload them and play them)
 * Create a json file containing all the ggponet.h functions and args. This can be used to automate creating wrappers to other languages.
 * CREATE UNIT TEST! Currently there is no automated tests for ggpo.
-* Abstract all platform dependent methods and make the injectable. This way ggpo can have support for all platforms + if you use an engine, you can use the engine's cross platform implementation for these methods. (ex. for GetCurrentTimeMS you could use unreal engine's own time methods instead of the windows one)
+* Abstract all platform dependent methods and make them injectable. This way ggpo can have support for all platforms + if you use an engine, you can use the engine's cross platform implementation for these methods. (ex. for GetCurrentTimeMS you could use unreal engine's own time methods instead of the windows one)
 
 EOS = Epic Online Services. A cross platform service that provides matchmaking, nat traversal, anti cheat, voip, etc.
 ## What's GGPO?
