@@ -5,7 +5,7 @@
 (日本語ドキュメントは[こちら](README.ja.md))
 
 ## What's GGPO-vNext?
-After some discussion in the ggpo discord channel, we came to the conclusion that the ggpo project is not complete and that people have their own build of ggpo to add changes/improvements. One of the reasons might be the fact that pull-requests in the original ggpo project are not beeing reviewed & merged anymore. So I will manage this version & will look into adding more contributers to manage. I havemade a list of changes/goals to finish for this version of ggpo.
+After some discussion in the ggpo discord channel, we came to the conclusion that the ggpo project is not complete and that people have their own build of ggpo to add changes/improvements. One of the reasons might be the fact that pull-requests in the original ggpo project are not beeing reviewed & merged anymore. So I will manage this version & will look into adding more contributers to manage. I have made a list of changes/goals to finish for this version of ggpo.
 * :white_check_mark: Abstracting the connection layer
 * Removing the need for global variables.
 * Server based rollback game ability: something similair to brawlhalla. (this will be optional)
