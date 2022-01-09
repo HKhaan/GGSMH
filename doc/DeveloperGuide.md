@@ -39,6 +39,7 @@ For example, to start a new session on the same host with another player bound t
    GGPOSessionCallbacks cb;
 
    /* fill in all callback functions */
+   cb.instance = this; // you can pass an instance of a class or struct and it will be returned as void* self on all the callbacks
    cb.begin_game = vw_begin_game_callback;
    cb.advance_frame = vw_advance_frame_callback;
    cb.load_game_state = vw_load_game_state_callback;
@@ -133,22 +134,24 @@ GGPO will use the `load_game_state` and `save_game_state` callbacks to periodica
 struct GameState gamestate;  // Suppose the authoritative value of our game's state is in here.
 
 bool __cdecl
-ggpo_save_game_state_callback(unsigned char **buffer, int *len,
+ggpo_save_game_state_callback(void* self, unsigned char **buffer, int *len,
                               int *checksum, int frame)
 {
+   GameInstance* instance = (GameInstance*) self;
    *len = sizeof(gamestate);
    *buffer = (unsigned char *)malloc(*len);
    if (!*buffer) {
       return false;
    }
-   memcpy(*buffer, &gamestate, *len);
+   memcpy(*buffer, &instance->gamestate, *len);
    return true;
 }
 
 bool __cdecl
-ggpo_load_game_state_callback(unsigned char *buffer, int len)
+ggpo_load_game_state_callback(void* self, unsigned char *buffer, int len)
 {
-   memcpy(&gamestate, buffer, len);
+   GameInstance* instance = (GameInstance*) self;
+   memcpy(&instance->gamestate, buffer, len);
    return true;
 }
 ```
@@ -157,7 +160,7 @@ GGPO will call your `free_buffer` callback to dispose of the memory you allocate
 
 ```
 void __cdecl 
-ggpo_free_buffer(void *buffer)
+ggpo_free_buffer(void* self, void *buffer)
 {
    free(buffer);
 }

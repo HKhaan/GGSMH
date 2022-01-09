@@ -3,7 +3,7 @@
 #include <gl/glu.h>
 #include <math.h>
 #include <stdio.h>
-#include "gdi_renderer.h"
+
 #include "vectorwar.h"
 #include "ggpo_perfmon.h"
 #include "udp_connection.h"
@@ -11,10 +11,6 @@
 //#define SYNC_TEST    // test: turn on synctest
 #define MAX_PLAYERS     64
 
-GameState gs = { 0 };
-NonGameState ngs = { 0 };
-Renderer *renderer = NULL;
-GGPOSession *ggpo = NULL;
 
 /* 
  * Simple checksum function stolen from wikipedia:
@@ -51,7 +47,7 @@ fletcher32_checksum(short *data, size_t len)
  * so just return true.
  */
 bool __cdecl
-vw_begin_game_callback(const char *)
+vw_begin_game_callback(VectorWar* self, const char *)
 {
    return true;
 }
@@ -63,34 +59,34 @@ vw_begin_game_callback(const char *)
  * text at the bottom of the screen to notify the user.
  */
 bool __cdecl
-vw_on_event_callback(GGPOEvent *info)
+vw_on_event_callback(VectorWar* self, GGPOEvent *info)
 {
    int progress;
    switch (info->code) {
    case GGPO_EVENTCODE_CONNECTED_TO_PEER:
-      ngs.SetConnectState(info->u.connected.player, Synchronizing);
+      self->ngs.SetConnectState(info->u.connected.player, Synchronizing);
       break;
    case GGPO_EVENTCODE_SYNCHRONIZING_WITH_PEER:
       progress = 100 * info->u.synchronizing.count / info->u.synchronizing.total;
-      ngs.UpdateConnectProgress(info->u.synchronizing.player, progress);
+      self->ngs.UpdateConnectProgress(info->u.synchronizing.player, progress);
       break;
    case GGPO_EVENTCODE_SYNCHRONIZED_WITH_PEER:
-      ngs.UpdateConnectProgress(info->u.synchronized.player, 100);
+      self->ngs.UpdateConnectProgress(info->u.synchronized.player, 100);
       break;
    case GGPO_EVENTCODE_RUNNING:
-      ngs.SetConnectState(Running);
-      renderer->SetStatusText("");
+      self->ngs.SetConnectState(Running);
+      self->renderer->SetStatusText("");
       break;
    case GGPO_EVENTCODE_CONNECTION_INTERRUPTED:
-      ngs.SetDisconnectTimeout(info->u.connection_interrupted.player,
+      self->ngs.SetDisconnectTimeout(info->u.connection_interrupted.player,
                                timeGetTime(),
                                info->u.connection_interrupted.disconnect_timeout);
       break;
    case GGPO_EVENTCODE_CONNECTION_RESUMED:
-      ngs.SetConnectState(info->u.connection_resumed.player, Running);
+       self->ngs.SetConnectState(info->u.connection_resumed.player, Running);
       break;
    case GGPO_EVENTCODE_DISCONNECTED_FROM_PEER:
-      ngs.SetConnectState(info->u.disconnected.player, Disconnected);
+      self->ngs.SetConnectState(info->u.disconnected.player, Disconnected);
       break;
    case GGPO_EVENTCODE_TIMESYNC:
       Sleep(1000 * info->u.timesync.frames_ahead / 60);
@@ -107,15 +103,15 @@ vw_on_event_callback(GGPOEvent *info)
  * during a rollback.
  */
 bool __cdecl
-vw_advance_frame_callback(int)
+vw_advance_frame_callback(VectorWar* self, int)
 {
    int inputs[MAX_SHIPS] = { 0 };
    int disconnect_flags;
 
    // Make sure we fetch new inputs from GGPO and use those to update
    // the game state instead of reading from the keyboard.
-   ggpo_synchronize_input(ggpo, (void *)inputs, sizeof(int) * MAX_SHIPS, &disconnect_flags);
-   VectorWar_AdvanceFrame(inputs, disconnect_flags);
+   ggpo_synchronize_input(self->ggpo, (void *)inputs, sizeof(int) * MAX_SHIPS, &disconnect_flags);
+   self->AdvanceFrame(inputs, disconnect_flags);
    return true;
 }
 
@@ -125,9 +121,9 @@ vw_advance_frame_callback(int)
  * Makes our current state match the state passed in by GGPO.
  */
 bool __cdecl
-vw_load_game_state_callback(unsigned char *buffer, int len)
+vw_load_game_state_callback(VectorWar* self, unsigned char *buffer, int len)
 {
-   memcpy(&gs, buffer, len);
+   memcpy(&self->gs, buffer, len);
    return true;
 }
 
@@ -138,14 +134,14 @@ vw_load_game_state_callback(unsigned char *buffer, int len)
  * buffer and len parameters.
  */
 bool __cdecl
-vw_save_game_state_callback(unsigned char **buffer, int *len, int *checksum, int)
+vw_save_game_state_callback(VectorWar* self, unsigned char **buffer, int *len, int *checksum, int)
 {
-   *len = sizeof(gs);
+   *len = sizeof(self->gs);
    *buffer = (unsigned char *)malloc(*len);
    if (!*buffer) {
       return false;
    }
-   memcpy(*buffer, &gs, *len);
+   memcpy(*buffer, &self->gs, *len);
    *checksum = fletcher32_checksum((short *)*buffer, *len / 2);
    return true;
 }
@@ -156,7 +152,7 @@ vw_save_game_state_callback(unsigned char **buffer, int *len, int *checksum, int
  * Log the gamestate.  Used by the synctest debugging tool.
  */
 bool __cdecl
-vw_log_game_state(char *filename, unsigned char *buffer, int)
+vw_log_game_state(VectorWar* self, char *filename, unsigned char *buffer, int)
 {
    FILE* fp = nullptr;
    fopen_s(&fp, filename, "w");
@@ -194,20 +190,20 @@ vw_log_game_state(char *filename, unsigned char *buffer, int)
  * Free a save state buffer previously returned in vw_save_game_state_callback.
  */
 void __cdecl 
-vw_free_buffer(void *buffer)
+vw_free_buffer(VectorWar* self, void *buffer)
 {
    free(buffer);
 }
 
 
 /*
- * VectorWar_Init --
+ * VectorWar::Init --
  *
  * Initialize the vector war game.  This initializes the game state and
  * the video renderer and creates a new network session.
  */
 void
-VectorWar_Init(HWND hwnd, unsigned short localport, int num_players, GGPOPlayer *players, int num_spectators)
+VectorWar::Init(HWND hwnd, unsigned short localport, int num_players, GGPOPlayer *players, int num_spectators)
 {
    GGPOErrorCode result;
    renderer = new GDIRenderer(hwnd);
@@ -218,13 +214,14 @@ VectorWar_Init(HWND hwnd, unsigned short localport, int num_players, GGPOPlayer 
 
    // Fill in a ggpo callbacks structure to pass to start_session.
    GGPOSessionCallbacks cb = { 0 };
-   cb.begin_game      = vw_begin_game_callback;
-   cb.advance_frame	 = vw_advance_frame_callback;
-   cb.load_game_state = vw_load_game_state_callback;
-   cb.save_game_state = vw_save_game_state_callback;
-   cb.free_buffer     = vw_free_buffer;
-   cb.on_event        = vw_on_event_callback;
-   cb.log_game_state  = vw_log_game_state;
+   cb.instance = this;
+   cb.begin_game = [](void* self, const char* name) {return vw_begin_game_callback((VectorWar*)self,name); };
+   cb.advance_frame = [](void* self, int flags) {return vw_advance_frame_callback((VectorWar*)self, flags); };
+   cb.load_game_state = [](void* self, unsigned char* buffer, int len) {return vw_load_game_state_callback((VectorWar*)self, buffer, len); };
+   cb.save_game_state = [](void* self, unsigned char** buffer, int* len, int* checksum, int frame) {return vw_save_game_state_callback((VectorWar*)self,buffer,len,checksum,frame); };
+   cb.free_buffer = [](void* self, void* buffer) {return vw_free_buffer((VectorWar*)self,buffer); };
+   cb.on_event = [](void* self, GGPOEvent* info) {return vw_on_event_callback((VectorWar*)self,info); };
+   cb.log_game_state = [](void* self, char* filename, unsigned char* buffer, int len) {return vw_log_game_state((VectorWar*)self,filename,buffer,len); };
    UdpConnection* udp_connection =  new UdpConnection(localport);
    GGPOConnection* connection = udp_connection->get_ggpo_connection();
 #if defined(SYNC_TEST)
@@ -263,12 +260,12 @@ VectorWar_Init(HWND hwnd, unsigned short localport, int num_players, GGPOPlayer 
 }
 
 /*
- * VectorWar_InitSpectator --
+ * VectorWar::InitSpectator --
  *
  * Create a new spectator session
  */
 void
-VectorWar_InitSpectator(HWND hwnd, unsigned short localport, int num_players, char *host_ip, unsigned short host_port)
+VectorWar::InitSpectator(HWND hwnd, unsigned short localport, int num_players, char *host_ip, unsigned short host_port)
 {
 	GGPOErrorCode result;
 	renderer = new GDIRenderer(hwnd);
@@ -279,13 +276,14 @@ VectorWar_InitSpectator(HWND hwnd, unsigned short localport, int num_players, ch
 
 	// Fill in a ggpo callbacks structure to pass to start_session.
 	GGPOSessionCallbacks cb = { 0 };
-	cb.begin_game = vw_begin_game_callback;
-	cb.advance_frame = vw_advance_frame_callback;
-	cb.load_game_state = vw_load_game_state_callback;
-	cb.save_game_state = vw_save_game_state_callback;
-	cb.free_buffer = vw_free_buffer;
-	cb.on_event = vw_on_event_callback;
-	cb.log_game_state = vw_log_game_state;
+	cb.instance = this;
+	cb.begin_game = [](void* self, const char* name) {return vw_begin_game_callback((VectorWar*)self, name); };
+	cb.advance_frame = [](void* self, int flags) {return vw_advance_frame_callback((VectorWar*)self, flags); };
+	cb.load_game_state = [](void* self, unsigned char* buffer, int len) {return vw_load_game_state_callback((VectorWar*)self, buffer, len); };
+	cb.save_game_state = [](void* self, unsigned char** buffer, int* len, int* checksum, int frame) {return vw_save_game_state_callback((VectorWar*)self, buffer, len, checksum, frame); };
+	cb.free_buffer = [](void* self, void* buffer) {return vw_free_buffer((VectorWar*)self, buffer); };
+	cb.on_event = [](void* self, GGPOEvent* info) {return vw_on_event_callback((VectorWar*)self, info); };
+	cb.log_game_state = [](void* self, char* filename, unsigned char* buffer, int len) {return vw_log_game_state((VectorWar*)self, filename, buffer, len); };
 	UdpConnection* udp_connection = new UdpConnection(localport);
 	GGPOConnection* connection = udp_connection->get_ggpo_connection();
 	auto playernum = udp_connection->add_connection(host_ip, host_port);
@@ -298,13 +296,13 @@ VectorWar_InitSpectator(HWND hwnd, unsigned short localport, int num_players, ch
 
 
 /*
- * VectorWar_DisconnectPlayer --
+ * VectorWar::DisconnectPlayer --
  *
  * Disconnects a player from this session.
  */
 
 void
-VectorWar_DisconnectPlayer(int player)
+VectorWar::DisconnectPlayer(int player)
 {
    if (player < ngs.num_players) {
       char logbuf[128];
@@ -320,12 +318,12 @@ VectorWar_DisconnectPlayer(int player)
 
 
 /*
- * VectorWar_DrawCurrentFrame --
+ * VectorWar::DrawCurrentFrame --
  *
  * Draws the current frame without modifying the game state.
  */
 void
-VectorWar_DrawCurrentFrame()
+VectorWar::DrawCurrentFrame()
 {
    if (renderer != nullptr) {
       renderer->Draw(gs, ngs);
@@ -333,12 +331,12 @@ VectorWar_DrawCurrentFrame()
 }
 
 /*
- * VectorWar_AdvanceFrame --
+ * VectorWar::AdvanceFrame --
  *
  * Advances the game state by exactly 1 frame using the inputs specified
  * for player 1 and player 2.
  */
-void VectorWar_AdvanceFrame(int inputs[], int disconnect_flags)
+void VectorWar::AdvanceFrame(int inputs[], int disconnect_flags)
 {
    gs.Update(inputs, disconnect_flags);
 
@@ -400,12 +398,12 @@ ReadInputs(HWND hwnd)
 }
 
 /*
- * VectorWar_RunFrame --
+ * VectorWar::RunFrame --
  *
  * Run a single frame of the game.
  */
 void
-VectorWar_RunFrame(HWND hwnd)
+VectorWar::RunFrame(HWND hwnd)
 {
   GGPOErrorCode result = GGPO_OK;
   int disconnect_flags;
@@ -427,26 +425,26 @@ VectorWar_RunFrame(HWND hwnd)
      if (GGPO_SUCCEEDED(result)) {
          // inputs[0] and inputs[1] contain the inputs for p1 and p2.  Advance
          // the game by 1 frame using those inputs.
-         VectorWar_AdvanceFrame(inputs, disconnect_flags);
+         VectorWar::AdvanceFrame(inputs, disconnect_flags);
      }
   }
-  VectorWar_DrawCurrentFrame();
+  VectorWar::DrawCurrentFrame();
 }
 
 /*
- * VectorWar_Idle --
+ * VectorWar::Idle --
  *
  * Spend our idle time in ggpo so it can use whatever time we have left over
  * for its internal bookkeeping.
  */
 void
-VectorWar_Idle(int time)
+VectorWar::Idle(int time)
 {
    ggpo_idle(ggpo, time);
 }
 
 void
-VectorWar_Exit()
+VectorWar::Exit()
 {
    memset(&gs, 0, sizeof(gs));
    memset(&ngs, 0, sizeof(ngs));
