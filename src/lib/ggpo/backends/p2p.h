@@ -35,6 +35,7 @@ public:
 
 public:
    virtual void OnMsg(int player_id, ConnectionMsg *msg, int len);
+   virtual void OnResnc(int frame, uint8* msg, int len);
 
 protected:
    GGPOErrorCode PlayerHandleToQueue(GGPOPlayerHandle player, int *queue);

@@ -30,7 +30,7 @@ public:
    bool GetConfirmedInput(int frame, GameInput *input);
    bool GetInput(int frame, GameInput *input);
    void AddInput(GameInput &input);
-
+   bool is_local;
 protected:
    int AdvanceQueueHead(int frame);
    void AddDelayedInputToQueue(GameInput &input, int i);

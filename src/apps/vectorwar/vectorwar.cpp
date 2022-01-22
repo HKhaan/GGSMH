@@ -7,7 +7,7 @@
 #include "vectorwar.h"
 #include "ggpo_perfmon.h"
 #include "udp_connection.h"
-
+bool desynced = true;
 //#define SYNC_TEST    // test: turn on synctest
 #define MAX_PLAYERS     64
 
@@ -123,7 +123,8 @@ vw_advance_frame_callback(VectorWar* self, int)
 bool __cdecl
 vw_load_game_state_callback(VectorWar* self, unsigned char *buffer, int len)
 {
-   memcpy(&self->gs, buffer, len);
+    if(len < 4215696 && len>=0)
+        memcpy(&self->gs, buffer, len);
    return true;
 }
 
@@ -192,7 +193,7 @@ vw_log_game_state(VectorWar* self, char *filename, unsigned char *buffer, int)
 void __cdecl 
 vw_free_buffer(VectorWar* self, void *buffer)
 {
-   free(buffer);
+   //free(buffer);
 }
 
 
@@ -250,6 +251,12 @@ VectorWar::Init(HWND hwnd, unsigned short localport, int num_players, GGPOPlayer
          ngs.local_player_handle = handle;
          ngs.SetConnectState(handle, Connecting);
          ggpo_set_frame_delay(ggpo, handle, FRAME_DELAY);
+         if (i == 0) {
+             gs._ships[0].position.y -= 50;
+         }
+         else {
+             gs._ships[0].position.y += 50;
+         }
       } else {
          ngs.players[i].connect_progress = 0;
       }
@@ -326,6 +333,7 @@ void
 VectorWar::DrawCurrentFrame()
 {
    if (renderer != nullptr) {
+       ngs.desynced = desynced;
       renderer->Draw(gs, ngs);
    }
 }
@@ -402,15 +410,29 @@ ReadInputs(HWND hwnd)
  *
  * Run a single frame of the game.
  */
+
 void
 VectorWar::RunFrame(HWND hwnd)
 {
+    if (desync_req) {
+        desync_cnt++;
+        if (desync_cnt > 45 && desync_cnt < 70) {
+            desynced = true;
+            gs._ships[1].position.x = gs._bounds.right / 2.0f;
+            gs._ships[1].position.y = gs._bounds.bottom / 2.0f;
+
+        }
+        else {
+            desynced = false;
+        }
+    }
   GGPOErrorCode result = GGPO_OK;
   int disconnect_flags;
   int inputs[MAX_SHIPS] = { 0 };
 
   if (ngs.local_player_handle != GGPO_INVALID_HANDLE) {
-     int input = ReadInputs(hwnd);
+     int input =(int)rand() % 31;// ReadInputs(hwnd);
+     //auto ran = rand() % 31;
 #if defined(SYNC_TEST)
      input = rand(); // test: use random inputs to demonstrate sync testing
 #endif

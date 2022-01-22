@@ -100,7 +100,12 @@ ConnectionProtocol::SendInput(GameInput &input)
          _pending_output.push(input);
       }
       SendPendingOutput();
-   }  
+   }
+   GameInputHistory gih = GameInputHistory();
+   gih.frame = _last_received_input.frame;
+   gih.input = _last_received_input;
+   if (_last_received_input.frame > 0)
+	   gameInputHistory[_last_received_input.frame % GAME_HISTORY_COUNT] = gih;
 }
 
 void
@@ -117,8 +122,12 @@ ConnectionProtocol::SendPendingOutput()
 
       msg->u.input.start_frame = _pending_output.front().frame;
       msg->u.input.input_size = (uint8)_pending_output.front().size;
-
-      ASSERT(last.frame == -1 || last.frame + 1 == msg->u.input.start_frame);
+      if (!(last.frame == -1 || last.frame + 1 == msg->u.input.start_frame)) {
+          _last_acked_input = _pending_output.front();
+          last = _last_acked_input;
+          printf("t");
+      }
+      //ASSERT(last.frame == -1 || last.frame + 1 == msg->u.input.start_frame);
       for (j = 0; j < _pending_output.size(); j++) {
          GameInput &current = _pending_output.item(j);
          if (memcmp(current.bits, last.bits, current.size) != 0) {
@@ -611,6 +620,11 @@ ConnectionProtocol::OnInput(ConnectionMsg *msg, int len)
       _last_acked_input = _pending_output.front();
       _pending_output.pop();
    }
+   GameInputHistory gih = GameInputHistory();
+   gih.frame = _last_received_input.frame;
+   gih.input= _last_received_input;
+   if(_last_received_input.frame>0)
+    gameInputHistory[_last_received_input.frame % GAME_HISTORY_COUNT] = gih;
    return true;
 }
 
@@ -724,17 +738,25 @@ ConnectionProtocol::PumpSendQueue()
          _oo_packet.msg = entry.msg;
          _oo_packet.player_id = entry.player_id;
       } else {
-         _connection->SendTo((char *)entry.msg, entry.msg->PacketSize(), 0,_player_id);
-
+          int packetSize = entry.msg->PacketSize();
+          char* sendMessage = new char[packetSize+1] {0};
+          memcpy(sendMessage + 1, entry.msg, packetSize);
+          sendMessage[0] = MsgType::GgpoMessage;
+         _connection->SendTo(sendMessage, packetSize+1, 0,_player_id);
+         delete sendMessage;
          delete entry.msg;
       }
       _send_queue.pop();
    }
    if (_oo_packet.msg && _oo_packet.send_time < Platform::GetCurrentTimeMS()) {
       Log("sending rogue oop!");
-      _connection->SendTo((char *)_oo_packet.msg, _oo_packet.msg->PacketSize(), 0,
+      int packetSize = _oo_packet.msg->PacketSize();
+	  char* sendMessage = new char[packetSize + 1]{ 0 };
+      sendMessage[0] = MsgType::GgpoMessage;
+      memcpy(sendMessage + 1, _oo_packet.msg, packetSize);
+      _connection->SendTo(sendMessage,packetSize , 0,
                      _oo_packet.player_id);
-
+      delete sendMessage;
       delete _oo_packet.msg;
       _oo_packet.msg = nullptr;
    }

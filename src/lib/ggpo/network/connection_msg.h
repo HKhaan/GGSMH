@@ -15,91 +15,100 @@
 
 struct ConnectionMsg
 {
-   enum MsgType {
-      Invalid       = 0,
-      SyncRequest   = 1,
-      SyncReply     = 2,
-      Input         = 3,
-      QualityReport = 4,
-      QualityReply  = 5,
-      KeepAlive     = 6,
-      InputAck      = 7,
-   };
+	enum MsgType {
+		Invalid = 0,
+		SyncRequest = 1,
+		SyncReply = 2,
+		Input = 3,
+		QualityReport = 4,
+		QualityReply = 5,
+		KeepAlive = 6,
+		InputAck = 7,
+	};
 
-   struct connect_status {
-      unsigned int   disconnected:1;
-      int            last_frame:31;
-   };
+	struct connect_status {
+		unsigned int   disconnected : 1;
+		int            last_frame : 31;
+	};
 
-   struct {
-      uint16         magic;
-      uint16         sequence_number;
-      uint8          type;            /* packet type */
-   } hdr;
-   union {
-      struct {
-         uint32      random_request;  /* please reply back with this random data */
-         uint16      remote_magic;
-         uint8       remote_endpoint;
-      } sync_request;
-      
-      struct {
-         uint32      random_reply;    /* OK, here's your random data back */
-      } sync_reply;
-      
-      struct {
-         int8        frame_advantage; /* what's the other guy's frame advantage? */
-         uint32      ping;
-      } quality_report;
-      
-      struct {
-         uint32      pong;
-      } quality_reply;
+	struct {
+		uint16         magic;
+		uint16         sequence_number;
+		uint8          type;            /* packet type */
+	} hdr;
+	union {
+		struct {
+			uint32      random_request;  /* please reply back with this random data */
+			uint16      remote_magic;
+			uint8       remote_endpoint;
+		} sync_request;
 
-      struct {
-         connect_status    peer_connect_status[CONNECTION_MSG_MAX_PLAYERS];
+		struct {
+			uint32      random_reply;    /* OK, here's your random data back */
+		} sync_reply;
 
-         uint32            start_frame;
+		struct {
+			int8        frame_advantage; /* what's the other guy's frame advantage? */
+			uint32      ping;
+		} quality_report;
 
-         int               disconnect_requested:1;
-         int               ack_frame:31;
+		struct {
+			uint32      pong;
+		} quality_reply;
 
-         uint16            num_bits;
-         uint8             input_size; // XXX: shouldn't be in every single packet!
-         uint8             bits[MAX_COMPRESSED_BITS]; /* must be last */
-      } input;
+		struct {
+			connect_status    peer_connect_status[CONNECTION_MSG_MAX_PLAYERS];
 
-      struct {
-         int               ack_frame:31;
-      } input_ack;
+			uint32            start_frame;
 
-   } u;
+			int               disconnect_requested : 1;
+			int               ack_frame : 31;
+
+			uint16            num_bits;
+			uint8             input_size; // XXX: shouldn't be in every single packet!
+			uint8             bits[MAX_COMPRESSED_BITS]; /* must be last */
+		} input;
+
+		struct {
+			int               ack_frame : 31;
+		} input_ack;
+
+	} u;
 
 public:
-   int PacketSize() {
-      return sizeof(hdr) + PayloadSize();
-   }
+	int PacketSize() {
+		return sizeof(hdr) + PayloadSize();
+	}
 
-   int PayloadSize() {
-      int size;
+	int PayloadSize() {
+		int size;
 
-      switch (hdr.type) {
-      case SyncRequest:   return sizeof(u.sync_request);
-      case SyncReply:     return sizeof(u.sync_reply);
-      case QualityReport: return sizeof(u.quality_report);
-      case QualityReply:  return sizeof(u.quality_reply);
-      case InputAck:      return sizeof(u.input_ack);
-      case KeepAlive:     return 0;
-      case Input:
-         size = (int)((char *)&u.input.bits - (char *)&u.input);
-         size += (u.input.num_bits + 7) / 8;
-         return size;
-      }
-      ASSERT(false);
-      return 0;
-   }
+		switch (hdr.type) {
+		case SyncRequest:   return sizeof(u.sync_request);
+		case SyncReply:     return sizeof(u.sync_reply);
+		case QualityReport: return sizeof(u.quality_report);
+		case QualityReply:  return sizeof(u.quality_reply);
+		case InputAck:      return sizeof(u.input_ack);
+		case KeepAlive:     return 0;
+		case Input:
+			size = (int)((char*)&u.input.bits - (char*)&u.input);
+			size += (u.input.num_bits + 7) / 8;
+			return size;
+		}
+		ASSERT(false);
+		return 0;
+	}
 
-   ConnectionMsg(MsgType t) { hdr.type = (uint8)t; }
+	ConnectionMsg(MsgType t) { hdr.type = (uint8)t; }
+};
+
+
+enum MsgType {
+	ChangeLevel,
+	LevelLoaded,
+	SyncState,
+	GgpoMessage
+
 };
 
 #pragma pack(pop)

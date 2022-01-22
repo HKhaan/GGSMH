@@ -36,7 +36,7 @@ struct NonGameState {
       int framenumber;
       int checksum;
    };
-
+   bool desynced;
    void SetConnectState(GGPOPlayerHandle handle, PlayerConnectState state) {
       for (int i = 0; i < num_players; i++) {
          if (players[i].handle == handle) {

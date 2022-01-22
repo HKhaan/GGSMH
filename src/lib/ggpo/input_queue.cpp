@@ -130,8 +130,11 @@ InputQueue::GetInput(int requested_frame, GameInput *input)
     * this in AddInput() to drop out of prediction mode.
     */
    _last_frame_requested = requested_frame;
-
-   ASSERT(requested_frame >= _inputs[_tail].frame);
+   if (!(requested_frame >= _inputs[_tail].frame)) {
+       printf("qsdf");
+       return false;
+   }
+   //ASSERT(requested_frame >= _inputs[_tail].frame);
 
    if (_prediction.frame == GameInput::NullFrame) {
       /*
@@ -192,6 +195,9 @@ InputQueue::AddInput(GameInput &input)
     * These next two lines simply verify that inputs are passed in 
     * sequentially by the user, regardless of frame delay.
     */
+   if(!(_last_user_added_frame == GameInput::NullFrame ||
+	   input.frame == _last_user_added_frame + 1)){
+   }
    ASSERT(_last_user_added_frame == GameInput::NullFrame ||
           input.frame == _last_user_added_frame + 1);
    _last_user_added_frame = input.frame;

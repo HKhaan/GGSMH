@@ -39,15 +39,27 @@ Connection::OnLoopPoll(void *cookie)
    for (;;) {
       int player_id = -1;
       int len = _ggpo_connection->receive_from(_ggpo_connection->instance, (char*)recv_buf, MAX_CONNECTION_PACKET_SIZE, 0, &player_id);
-
       // TODO: handle len == 0... indicates a disconnect.
 
       if (len == -1) {
          break;
       } else if (len > 0) {
+
          Log("recvfrom returned (len:%d  from player: %d).\n", len, player_id );
-         ConnectionMsg *msg = (ConnectionMsg *)recv_buf;
-         _callbacks->OnMsg(player_id, msg, len);
+         if (recv_buf[0] == MsgType::GgpoMessage) {
+
+             uint8* ggpoMsg = new uint8[len - 1];
+             memcpy(ggpoMsg, recv_buf + 1, len - 1);
+             ConnectionMsg* msg = (ConnectionMsg*)ggpoMsg;
+             _callbacks->OnMsg(player_id, msg, len - 1);
+             delete ggpoMsg;
+         }
+         else if (recv_buf[0] == MsgType::SyncState) {
+             int frame = 0;
+             memcpy(&frame, recv_buf + 1, sizeof(int));
+             auto msg = recv_buf + 1 + sizeof(int);
+             _callbacks->OnResnc(frame, msg ,len- 1 - sizeof(int));
+         }
       } 
    }
    return true;

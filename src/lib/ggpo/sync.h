@@ -18,6 +18,7 @@
 #define MAX_PREDICTION_FRAMES    8
 
 class SyncTestBackend;
+class Peer2PeerBackend;
 
 class Sync {
 public:
@@ -53,15 +54,19 @@ public:
 
    void CheckSimulation(int timeout);
    void AdjustSimulation(int seek_to);
+   void ResyncGamestate(int frame, uint8* msg, int len);
    void IncrementFrame(void);
 
    int GetFrameCount() { return _framecount; }
+   void SetFrameCount(int frame) { _savedstate.head = _framecount; _framecount = frame; }
    bool InRollback() { return _rollingback; }
-
+   void SetInRollback(bool inRollback) { _rollingback= inRollback; }
    bool GetEvent(Event &e);
-
+   void ResetPrediction(int frameNumber);
+   void FixSavedStateHead();
 protected:
    friend SyncTestBackend;
+   friend Peer2PeerBackend;
 
    struct SavedFrame {
       byte    *buf;
@@ -75,14 +80,14 @@ protected:
       int head;
    };
 
-   void LoadFrame(int frame);
+   
    void SaveCurrentFrame();
    int FindSavedFrameIndex(int frame);
    SavedFrame &GetLastSavedFrame();
 
    bool CreateQueues(Config &config);
    bool CheckSimulationConsistency(int *seekTo);
-   void ResetPrediction(int frameNumber);
+   
 
 protected:
    GGPOSessionCallbacks _callbacks;
@@ -98,6 +103,10 @@ protected:
 
    RingBuffer<Event, 32> _event_queue;
    ConnectionMsg::connect_status *_local_connect_status;
+public:
+    void LoadFrame(int frame);
+    SavedFrame& GetSendState() { return GetLastSavedFrame(); }
+
 };
 
 #endif

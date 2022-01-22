@@ -37,7 +37,7 @@ public:
 
 public:
    virtual void OnMsg(int player_id, ConnectionMsg *msg, int len);
-
+   virtual void OnResnc(int frame, uint8* msg, int len) {};
 protected:
    void PollConnectionProtocolEvents(void);
    void CheckInitialSync(void);

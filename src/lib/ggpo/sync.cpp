@@ -6,7 +6,7 @@
  */
 
 #include "sync.h"
-
+#include "ggponet.h"
 Sync::Sync(ConnectionMsg::connect_status* connect_status) :
 	_local_connect_status(connect_status),
 	_input_queues(NULL)
@@ -15,6 +15,10 @@ Sync::Sync(ConnectionMsg::connect_status* connect_status) :
 	_last_confirmed_frame = -1;
 	_max_prediction_frames = 0;
 	memset(&_savedstate, 0, sizeof(_savedstate));
+	for (int i = 0; i < MAX_PREDICTION_FRAMES +1; i++)
+	{
+		_savedstate.frames[i].buf = NULL;
+	}
 }
 
 Sync::~Sync()
@@ -172,7 +176,75 @@ Sync::AdjustSimulation(int seek_to)
 	Log("---\n");
 }
 
+void Sync::ResyncGamestate(int frame, uint8* msg, int len)
+{
+	desync_cnt = 0;
+	desync_req = true;
+	_rollingback = true;
+	int framecount = _framecount;
+	int count = _framecount - frame;
+	//If playing on lan, chance of incoming frame being ahead exists. So we have to teleport to the future. Not having inputs for the frame we teleport to will crash the game.
+	if (frame > _framecount) {
+		
+		count = 0;
+		for (int i = _framecount; i < frame; i++)
+		{
+			char* emptyInput = new char[_config.input_size]{ 0 };
+			GameInput input;
+			input.init(-1, emptyInput, _config.input_size);
+			for (int pl = 0; pl < _config.num_players; pl++)
+			{
+				if (_input_queues[pl].is_local) {
+
+					AddLocalInput(pl, input);
+				}
+			}
+		_framecount++;
+		}
+		ASSERT(_framecount == frame);
+	}
+	//If ping to enemy/server is low, chance exists that they send us the game state for the frame at which we are currently. In that case don't rollback just override our current game state.
+	if (count == 0) { 
+		//todo: save game state;
+		_callbacks.load_game_state(_callbacks.instance, msg, len); 
+		_rollingback = false;
+		return;
+	}
+	Log("Catching up\n");
+
+	/*
+	 * Flush our input queue and load the last frame.
+	 */
+	LoadFrame(frame);
+	if (_framecount != frame)
+	{
+		printf("d");
+		LoadFrame(frame);
+	}
+	ASSERT(_framecount == frame);
+
+	/*
+	 * Advance frame by frame (stuffing notifications back to
+	 * the master).
+	 */
+	ResetPrediction(_framecount);
+	_callbacks.load_game_state(_callbacks.instance, msg, len);
+	for (int i = 0; i < count; i++) {
+		_callbacks.advance_frame(_callbacks.instance, 0);
+	}
+	ASSERT(_framecount == framecount);
+
+	_rollingback = false;
+
+	Log("---\n");
+}
+
+void Sync::FixSavedStateHead() {
+	
+	_savedstate.head = (_savedstate.head + 1) % ARRAY_SIZE(_savedstate.frames);
+}
 void
+
 Sync::LoadFrame(int frame)
 {
 	// find the frame in question
@@ -237,7 +309,8 @@ Sync::FindSavedFrameIndex(int frame)
 		}
 	}
 	if (i == count) {
-		ASSERT(FALSE);
+		printf("sdf");
+		//ASSERT(FALSE);
 	}
 	return i;
 }

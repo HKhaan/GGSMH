@@ -38,6 +38,6 @@ public:
 };
 
 #define ARRAY_SIZE(n)      (sizeof(n) / sizeof(n[0]))
-#define FRAME_DELAY        2
+#define FRAME_DELAY        0
 
 #endif

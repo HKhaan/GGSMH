@@ -15,7 +15,7 @@
 
 #define MAX_CONNECTION_ENDPOINTS     16
 
-static const int MAX_CONNECTION_PACKET_SIZE = 4096;
+static const int MAX_CONNECTION_PACKET_SIZE = 8192;
 
 class Connection : public IPollSink
 {
@@ -29,6 +29,7 @@ public:
    struct Callbacks {
       virtual ~Callbacks() { }
       virtual void OnMsg(int player_id, ConnectionMsg *msg, int len) = 0;
+      virtual void OnResnc(int frame, uint8* msg, int len) = 0;
    };
 
 

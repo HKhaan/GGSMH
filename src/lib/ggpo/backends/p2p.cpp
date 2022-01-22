@@ -48,7 +48,9 @@ Peer2PeerBackend::Peer2PeerBackend(GGPOSessionCallbacks *cb,
    for (int i = 0; i < ARRAY_SIZE(_local_connect_status); i++) {
       _local_connect_status[i].last_frame = -1;
    }
-
+   for (int i = 0; i < _num_players; i++) {
+       _endpoints[i]._player_id=-1;
+   }
    /*
     * Preload the ROM
     */
@@ -73,6 +75,7 @@ Peer2PeerBackend::AddRemotePlayer(int player_id,
    _endpoints[queue].SetDisconnectTimeout(_disconnect_timeout);
    _endpoints[queue].SetDisconnectNotifyStart(_disconnect_notify_start);
    _endpoints[queue].Synchronize();
+   _sync._input_queues[queue].is_local = false;
 }
 
 GGPOErrorCode Peer2PeerBackend::AddSpectator(int player_id)
@@ -92,7 +95,7 @@ GGPOErrorCode Peer2PeerBackend::AddSpectator(int player_id)
    _spectators[queue].SetDisconnectTimeout(_disconnect_timeout);
    _spectators[queue].SetDisconnectNotifyStart(_disconnect_notify_start);
    _spectators[queue].Synchronize();
-
+   
    return GGPO_OK;
 }
 
@@ -255,6 +258,9 @@ Peer2PeerBackend::AddPlayer(GGPOPlayer *player,
    if (player->type == GGPO_PLAYERTYPE_REMOTE) {
       AddRemotePlayer(player->player_id, queue);
    }
+   else {
+       _sync._input_queues[queue].is_local = true;
+   }
    return GGPO_OK;
 }
 
@@ -329,6 +335,21 @@ Peer2PeerBackend::IncrementFrame(void)
 {  
    Log("End of frame (%d)...\n", _sync.GetFrameCount());
    _sync.IncrementFrame();
+   auto framecount = _sync.GetFrameCount();
+   //todo do this for last confirmed frame not last frame
+   if (_endpoints[0]._player_id==0 && framecount > 60 && framecount % 120 == 0) {
+       auto state = _sync.GetSendState();
+	   char* sendMessage = new char[state.cbuf + 1 + sizeof(int)]{ 0 };
+       memcpy(sendMessage + 1, &framecount, sizeof(int));
+	   memcpy(sendMessage + 1 + sizeof(int), state.buf, state.cbuf);
+	   sendMessage[0] = MsgType::SyncState;
+       for (int i = 0; i < _num_players; i++) {
+           int playId = _endpoints[i]._player_id;
+           if(playId!=-1){
+                _ggpo_connection->send_to(_ggpo_connection->instance, sendMessage, state.cbuf + 1, 0, playId);
+           }
+       }
+   }
    DoPoll(0);
    PollSyncEvents();
 
@@ -594,6 +615,22 @@ Peer2PeerBackend::OnMsg(int player_id, ConnectionMsg* msg, int len)
 			return;
 		}
 	}
+}
+void Peer2PeerBackend::OnResnc(int frame , uint8* msg, int len)
+{
+        _sync.ResyncGamestate(frame, msg, len);
+	//int framecount = _sync.GetFrameCount();
+	//int count = framecount - frame;
+ //   _sync.SetInRollback(true);
+ //   _sync.LoadFrame(frame);
+ //   _sync.ResetPrediction(frame);
+ //   _callbacks.load_game_state(_callbacks.instance, (unsigned char*)msg, len);
+ //   _sync.SetFrameCount(frame);
+	//for (int i = 0; i < count; i++) {
+	//	_callbacks.advance_frame(_callbacks.instance, 0);
+	//}
+ //   _sync.SetInRollback(false);
+ //   _sync.FixSavedStateHead();
 }
 
 void

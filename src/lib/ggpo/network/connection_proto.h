@@ -16,6 +16,13 @@
 #include "ggponet.h"
 #include "ring_buffer.h"
 
+#define GAME_HISTORY_COUNT 5400
+
+struct GameInputHistory {
+    int frame;
+    GameInput   input;
+};
+
 class ConnectionProtocol : public IPollSink
 {
 public:
@@ -26,7 +33,7 @@ public:
       int                 send_queue_len;
       Connection::Stats          connection;
    };
-
+   GameInputHistory     gameInputHistory[GAME_HISTORY_COUNT+1];
    struct Event {
       enum Type {
          Unknown = -1,
@@ -83,7 +90,7 @@ public:
 
    void SetDisconnectTimeout(int timeout);
    void SetDisconnectNotifyStart(int timeout);
-
+   int              _player_id;
 protected:
    enum State {
       Syncing,
@@ -119,13 +126,12 @@ protected:
    bool OnQualityReport(ConnectionMsg *msg, int len);
    bool OnQualityReply(ConnectionMsg *msg, int len);
    bool OnKeepAlive(ConnectionMsg *msg, int len);
-
 protected:
    /*
     * Network transmission information
     */
    Connection            *_connection;
-   int              _player_id;
+   
    uint16         _magic_number;
    int            _queue;
    uint16         _remote_magic_number;

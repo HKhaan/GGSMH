@@ -575,8 +575,12 @@ GGPO_API void __cdecl ggpo_logv(GGPOSession *,
                                 const char *fmt,
                                 va_list args);
 
+
+//TODO: remove this, this is ver testing
 #ifdef __cplusplus
 };
 #endif
+static int desync_cnt = 0;
+static int desync_req = false;
 
 #endif

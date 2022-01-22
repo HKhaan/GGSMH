@@ -62,7 +62,11 @@ GDIRenderer::Draw(GameState &gs, NonGameState &ngs)
    RenderChecksum(hdc, 40, ngs.periodic);
    SetTextColor(hdc, RGB(128, 128, 128));
    RenderChecksum(hdc, 56, ngs.now);
-
+   if (ngs.desynced) {
+       TextOutA(hdc, (_rc.left + _rc.right) / 2, _rc.top + 72, "DESYNCED", (int)strlen("DESYNCED"));
+   }else{
+    TextOutA(hdc, (_rc.left + _rc.right) / 2, _rc.top + 72, "SYNCED", (int)strlen("SYNCED"));
+   }
    //SwapBuffers(hdc);
    ReleaseDC(_hwnd, hdc);
 }
