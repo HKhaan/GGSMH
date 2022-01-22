@@ -1,11 +1,6 @@
-![](doc/images/ggpo_header.png)
-
-&nbsp; _[![Appveyor build status](https://img.shields.io/appveyor/ci/pond3r/ggpo/master.svg?logo=appveyor)](https://ci.appveyor.com/project/pond3r/ggpo/branch/master)_
-
-(日本語ドキュメントは[こちら](README.ja.md))
-
-## What's GGPO-vNext?
+## GGSMH: Good game: shake my hand.
 After some discussion in the ggpo discord channel, we came to the conclusion that the ggpo project is not complete and that people have their own build of ggpo to add changes/improvements. One of the reasons might be the fact that pull-requests in the original ggpo project are not beeing reviewed & merged anymore. So I will manage this version & will look into adding more contributers to manage. I have made a list of changes/goals to finish for this version of ggpo.
+The name GGSMH is used in this repo to prevent issues with original ggpo repo (ex. ggpo creators not liking the fact that this repo uses their frameworks name). Credits go to mellomelon for coming up with the name
 * :white_check_mark: Abstracting the connection layer
 * :white_check_mark: Removing the need for global variables.
 * Server based rollback game ability: something similair to brawlhalla. (this will be optional)
