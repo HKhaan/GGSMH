@@ -18,6 +18,7 @@ set(GGPO_LIB_SRC_NOFILTER
 	"lib/ggpo/input_queue.cpp"
 	"lib/ggpo/log.cpp"
 	"lib/ggpo/main.cpp"
+	"lib/ggpo/ggpo-external.cpp"
 	"lib/ggpo/poll.cpp"
 	"lib/ggpo/sync.cpp"
 	"lib/ggpo/timesync.cpp"
@@ -63,6 +64,7 @@ set(GGPO_LIB_SRC_BACKENDS
 
 set(GGPO_PUBLIC_INC
 	"include/ggponet.h"
+	"include/ggpo-external.h"
 )
 
 source_group(" " FILES ${GGPO_LIB_INC_NOFILTER} ${GGPO_LIB_SRC_NOFILTER})

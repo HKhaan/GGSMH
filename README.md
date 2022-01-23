@@ -3,6 +3,8 @@ After some discussion in the ggpo discord channel, we came to the conclusion tha
 The name GGSMH is used in this repo to prevent issues with original ggpo repo (ex. ggpo creators not liking the fact that this repo uses their frameworks name). Credits go to mellomelon for coming up with the name
 * :white_check_mark: Abstracting the connection layer
 * :white_check_mark: Removing the need for global variables.
+* Better interop support
+* Add .clang-formatter to the project :|
 * Server based rollback game ability: something similair to brawlhalla. (this will be optional)
 * A system where the clients sync their gamestate every X frame by comparing checksums: this is for the devs that can't get determinism working, it makes cheating easy to do tough.(Luckily *EOS has a built in anti-cheat for free, an example for this will be provided) (this will be optional).
 * Full *EOS example.

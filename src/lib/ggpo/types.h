@@ -20,7 +20,7 @@
  *   4389 - '!=' : signed/unsigned mismatch
  *   4800 - 'int' : forcing value to bool 'true' or 'false' (performance warning)
  */
-#pragma warning(disable: 4018 4100 4127 4201 4389 4800)
+#pragma warning(disable: 4018 4100 4127 4201 4389 4800 26812)
 
 /*
  * Simple types
